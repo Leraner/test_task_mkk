@@ -23,6 +23,8 @@ async def create_payment(
     body: CreatePaymentInputModel,
     idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=1, max_length=255)],
     use_case: FromDishka[CreatePaymentUseCase],
+    presenter: FromDishka[CreatePaymentPresenter],
 ) -> BaseWebOutputModel[CreatePaymentResponseDataModel]:
-    output = await use_case.execute(body.as_dto(idempotency_key))
-    return CreatePaymentPresenter.present(output).as_web_output()
+    uc_output = await use_case.execute(body.as_dto(idempotency_key))
+    response_data = presenter.present(uc_output)
+    return response_data.as_web_output()

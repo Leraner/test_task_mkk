@@ -21,6 +21,8 @@ router = APIRouter()
 async def get_payment(
     payment_id: UUID,
     use_case: FromDishka[GetPaymentUseCase],
+    presenter: FromDishka[GetPaymentPresenter],
 ) -> BaseWebOutputModel[PaymentResponseDataModel]:
-    output = await use_case.execute(GetPaymentInputDTO(payment_id=payment_id))
-    return GetPaymentPresenter.present(output).as_web_output()
+    uc_output = await use_case.execute(GetPaymentInputDTO(payment_id=payment_id))
+    response_data = presenter.present(uc_output)
+    return response_data.as_web_output()

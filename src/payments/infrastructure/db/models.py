@@ -3,9 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 from typing import Any
-from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, Numeric, String, Uuid
+from sqlalchemy import DateTime, Enum, Numeric, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -17,7 +16,6 @@ from src.shared.db.base.models import BaseDBModel, Timestamp
 class PaymentDBModel(Timestamp, BaseDBModel):
     __tablename__ = "payments"
 
-    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 2))
     currency: Mapped[Currency] = mapped_column(
         Enum(Currency, name="currency"),
@@ -27,6 +25,7 @@ class PaymentDBModel(Timestamp, BaseDBModel):
     status: Mapped[PaymentStatus] = mapped_column(Enum(PaymentStatus, name="payment_status"))
     idempotency_key: Mapped[str] = mapped_column(String(255), unique=True)
     webhook_url: Mapped[str] = mapped_column(String(2048))
+    idempotency_fingerprint: Mapped[str] = mapped_column(String(64))
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     @classmethod
@@ -40,6 +39,7 @@ class PaymentDBModel(Timestamp, BaseDBModel):
             status=payment.status,
             idempotency_key=payment.idempotency_key,
             webhook_url=payment.webhook_url,
+            idempotency_fingerprint=payment.idempotency_fingerprint,
             created_at=payment.created_at,
             processed_at=payment.processed_at,
         )
@@ -54,6 +54,7 @@ class PaymentDBModel(Timestamp, BaseDBModel):
             status=self.status,
             idempotency_key=self.idempotency_key,
             webhook_url=self.webhook_url,
+            idempotency_fingerprint=self.idempotency_fingerprint,
             created_at=self.created_at,
             processed_at=self.processed_at,
         )

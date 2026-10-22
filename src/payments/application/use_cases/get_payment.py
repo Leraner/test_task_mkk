@@ -4,7 +4,8 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from src.payments.domain.interfaces.unit_of_work import IPaymentsUnitOfWork
+from src.payments.domain.exceptions import PaymentNotFoundError
+from src.payments.domain.interfaces.repository import IPaymentsRepository
 from src.payments.domain.value_objects import Currency, PaymentStatus
 
 
@@ -29,13 +30,28 @@ class GetPaymentOutputDTO:
 
 class GetPaymentUseCase:
     """
-    Получение платежа по id через `uow.payments` внутри `async with self._uow:`.
+    Получение платежа по id через репозиторий: только чтение, UoW не нужен.
 
     Если платежа нет — `PaymentNotFoundError` (→ 404 через exception_map).
     """
 
-    def __init__(self, uow: IPaymentsUnitOfWork) -> None:
-        self._uow = uow
+    def __init__(self, payments: IPaymentsRepository) -> None:
+        self._payments = payments
 
-    async def execute(self, dto: GetPaymentInputDTO) -> GetPaymentOutputDTO:
-        raise NotImplementedError
+    async def execute(self, input_dto: GetPaymentInputDTO) -> GetPaymentOutputDTO:
+        payment = await self._payments.get_by_id(input_dto.payment_id)
+        if payment is None:
+            raise PaymentNotFoundError(payment_id=input_dto.payment_id)
+
+        return GetPaymentOutputDTO(
+            payment_id=payment.id,
+            amount=payment.amount,
+            currency=payment.currency,
+            description=payment.description,
+            metadata=payment.metadata,
+            status=payment.status,
+            idempotency_key=payment.idempotency_key,
+            webhook_url=payment.webhook_url,
+            created_at=payment.created_at,
+            processed_at=payment.processed_at,
+        )

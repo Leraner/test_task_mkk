@@ -1,3 +1,5 @@
+import hashlib
+import json
 from datetime import datetime
 from decimal import Decimal
 from typing import Any
@@ -20,12 +22,33 @@ class CreatePaymentInputModel(BaseWebInputModel):
     def as_dto(self, idempotency_key: str) -> CreatePaymentInputDTO:
         return CreatePaymentInputDTO(
             idempotency_key=idempotency_key,
+            idempotency_fingerprint=self._idempotency_fingerprint(),
             amount=self.amount,
             currency=self.currency,
             description=self.description,
             webhook_url=str(self.webhook_url),
             metadata=self.metadata,
         )
+
+    def _idempotency_fingerprint(self) -> str:
+        """SHA-256 канонизированного тела запроса (idempotency fingerprint).
+
+        Ключи сортируются, сумма приводится к 2 знакам — иначе равные запросы
+        (`{"a":1,"b":2}` / `{"b":2,"a":1}`, `100` / `100.00`) дали бы разный хэш.
+        """
+        payload = json.dumps(
+            {
+                "amount": f"{self.amount:.2f}",
+                "currency": self.currency,
+                "description": self.description,
+                "webhook_url": str(self.webhook_url),
+                "metadata": self.metadata,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        )
+        return hashlib.sha256(payload.encode()).hexdigest()
 
 
 class CreatePaymentResponseDataModel(BaseResponseDataModel):

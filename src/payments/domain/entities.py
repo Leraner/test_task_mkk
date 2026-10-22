@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 from urllib.parse import urlsplit
-from uuid import UUID, uuid4
+from uuid import UUID, uuid7
 
 from src.payments.domain.exceptions import (
     InvalidIdempotencyKeyError,
@@ -19,23 +19,25 @@ class Payment:
     def __init__(
         self,
         *,
+        id: UUID | None = None,
         amount: Decimal,
         currency: Currency,
         description: str,
         idempotency_key: str,
         webhook_url: str,
-        metadata: dict[str, Any] | None = None,
+        idempotency_fingerprint: str,
         status: PaymentStatus = PaymentStatus.PENDING,
-        id: UUID | None = None,
+        metadata: dict[str, Any] | None = None,
         created_at: datetime | None = None,
         processed_at: datetime | None = None,
     ) -> None:
-        self.id = id or uuid4()
+        self.id = id or uuid7()
         self.amount = self._validate_amount(amount)
         self.currency = currency
         self.description = description
         self.idempotency_key = self._validate_idempotency_key(idempotency_key)
         self.webhook_url = self._validate_webhook_url(webhook_url)
+        self.idempotency_fingerprint = idempotency_fingerprint
         self.metadata = metadata or {}
         self._status = status
         self.created_at = created_at

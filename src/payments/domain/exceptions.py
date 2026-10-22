@@ -1,4 +1,9 @@
-from src.shared_kernel.exceptions import DomainError, EntityNotFoundError, EntityValidationError
+from src.shared_kernel.exceptions import (
+    DomainError,
+    EntityAlreadyExistError,
+    EntityNotFoundError,
+    EntityValidationError,
+)
 
 
 class PaymentError(DomainError):
@@ -31,3 +36,13 @@ class InvalidWebhookUrlError(EntityValidationError, PaymentError):
 class PaymentNotFoundError(EntityNotFoundError, PaymentError):
     detail = "Payment not found"
     ru_detail = "Платёж не найден"
+
+
+class PaymentAlreadyExistsError(EntityAlreadyExistError, PaymentError):
+    detail = "Payment with this idempotency key already exists"
+    ru_detail = "Платёж с таким ключом идемпотентности уже существует"
+
+
+class IdempotencyKeyReusedError(EntityValidationError, PaymentError):
+    detail = "Idempotency key was already used with different request parameters"
+    ru_detail = "Ключ идемпотентности уже использован с другими параметрами запроса"
