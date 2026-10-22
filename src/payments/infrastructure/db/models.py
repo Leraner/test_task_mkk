@@ -4,13 +4,15 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import DateTime, Enum, Numeric, String
+from sqlalchemy import DateTime, Enum, Index, Numeric, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.payments.domain.entities import Payment
 from src.payments.domain.value_objects import Currency, PaymentStatus
 from src.shared.db.base.models import BaseDBModel, Timestamp
+
+IDEMPOTENCY_KEY_CONSTRAINT = "uq_payments_idempotency_key"
 
 
 class PaymentDBModel(Timestamp, BaseDBModel):
@@ -23,10 +25,12 @@ class PaymentDBModel(Timestamp, BaseDBModel):
     description: Mapped[str] = mapped_column(String(255))
     payment_metadata: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default="{}")
     status: Mapped[PaymentStatus] = mapped_column(Enum(PaymentStatus, name="payment_status"))
-    idempotency_key: Mapped[str] = mapped_column(String(255), unique=True)
+    idempotency_key: Mapped[str] = mapped_column(String(255))
     webhook_url: Mapped[str] = mapped_column(String(2048))
     idempotency_fingerprint: Mapped[str] = mapped_column(String(64))
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (UniqueConstraint("idempotency_key", name=IDEMPOTENCY_KEY_CONSTRAINT),)
 
     @classmethod
     def from_entity(cls, payment: Payment) -> PaymentDBModel:
@@ -58,3 +62,29 @@ class PaymentDBModel(Timestamp, BaseDBModel):
             created_at=self.created_at,
             processed_at=self.processed_at,
         )
+
+
+class OutboxEventDBModel(BaseDBModel):
+    """Transactional outbox: событие пишется в одной транзакции с платежом.
+
+    Паблишер выбирает строки с `published_at IS NULL` в порядке `id` (UUIDv7 — по времени
+    создания), отправляет `payload` в `topic` и проставляет `published_at`.
+    """
+
+    __tablename__ = "outbox"
+
+    topic: Mapped[str] = mapped_column(String(255))
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index(
+            "ix_outbox_unpublished",
+            "id",
+            postgresql_where=published_at.is_(None),
+        ),
+    )

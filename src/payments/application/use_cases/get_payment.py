@@ -22,8 +22,6 @@ class GetPaymentOutputDTO:
     description: str
     metadata: dict[str, Any]
     status: PaymentStatus
-    idempotency_key: str
-    webhook_url: str
     created_at: datetime
     processed_at: datetime | None
 
@@ -50,8 +48,6 @@ class GetPaymentUseCase:
             description=payment.description,
             metadata=payment.metadata,
             status=payment.status,
-            idempotency_key=payment.idempotency_key,
-            webhook_url=payment.webhook_url,
             created_at=payment.created_at,
             processed_at=payment.processed_at,
         )

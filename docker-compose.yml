@@ -26,14 +26,22 @@ services:
       timeout: 10s
       retries: 10
 
+  migrations:
+    build: .
+    env_file: .env
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      database:
+        condition: service_healthy
+
   api:
     build: .
     env_file: .env
     ports:
       - "8000:8000"
     depends_on:
-      database:
-        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
     restart: unless-stopped

@@ -25,6 +25,7 @@ RUN useradd --create-home --uid 1000 app
 WORKDIR /app
 
 COPY --from=builder /app/.venv /app/.venv
+COPY alembic.ini ./
 COPY src ./src
 
 USER app

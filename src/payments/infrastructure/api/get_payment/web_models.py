@@ -14,7 +14,5 @@ class PaymentResponseDataModel(BaseResponseDataModel):
     description: str
     metadata: dict[str, Any]
     status: PaymentStatus
-    idempotency_key: str
-    webhook_url: str
     created_at: datetime
     processed_at: datetime | None
