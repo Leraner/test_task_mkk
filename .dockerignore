@@ -1,0 +1,13 @@
+.git
+.venv
+.ruff_cache
+.mypy_cache
+.pytest_cache
+**/__pycache__
+**/*.py[cod]
+.env
+.env.*
+docs
+.DS_Store
+.idea
+.vscode

@@ -15,7 +15,11 @@ class BaseRepository[T: BaseDBModel, E]:
 
     ``T`` — ORM-модель, ``E`` — доменная сущность, которую возвращает ``to_entity()`` для этой модели.
     Наследники задают ``model`` и добавляют публичные методы.
-    При IntegrityError делает rollback и бросает DatabaseError.
+
+    Репозиторий не управляет транзакцией: он только добавляет изменения в сессию
+    и делает flush. Commit/rollback — ответственность ``IUnitOfWork``, поэтому
+    несколько репозиториев на одной сессии пишут в одну транзакцию.
+    При IntegrityError бросает DatabaseError; откат делает тот, кто владеет транзакцией.
     """
 
     model: ClassVar[type[BaseDBModel]]
@@ -65,7 +69,6 @@ class BaseRepository[T: BaseDBModel, E]:
         query = sa_delete(self.model)
         query = self._apply_specs(query=query, specs=specs)
         await self._execute(query=query)
-        await self._commit()
 
     def _apply_specs(
         self,
@@ -81,80 +84,53 @@ class BaseRepository[T: BaseDBModel, E]:
         self,
         query: QueryType,
     ) -> Any:
-        """Выполняет запрос. При IntegrityError — rollback + DatabaseError."""
+        """Выполняет запрос. При IntegrityError — DatabaseError."""
         try:
             return await self._session.execute(query)
         except IntegrityError as err:
-            await self.__handle_integrity_error(err)
+            raise self.__integrity_error(err) from err
 
     async def _save_all(self, objects: list[T]) -> None:
-        """Сохраняет список объектов без возврата обновлённых данных."""
-        await self.__save_without_refresh(objects=objects)
+        """Добавляет список объектов в транзакцию без возврата обновлённых данных."""
+        await self.__save(objects=objects, refresh=False)
 
     async def _save_all_with_return(self, objects: list[T]) -> list[E]:
-        """Сохраняет список объектов и возвращает их как доменные сущности."""
-        await self.__save_with_refresh(objects=objects)
+        """Добавляет список объектов в транзакцию и возвращает их как доменные сущности."""
+        await self.__save(objects=objects, refresh=True)
         return [cast(E, obj.to_entity()) for obj in objects]
 
     async def _save(self, obj: T) -> None:
-        """Сохраняет один объект без возврата обновлённых данных."""
-        await self.__save_without_refresh(objects=[obj])
+        """Добавляет один объект в транзакцию без возврата обновлённых данных."""
+        await self.__save(objects=[obj], refresh=False)
 
     async def _save_with_return(self, obj: T) -> E:
-        """Сохраняет объект и возвращает его как доменную сущность (с обновлёнными полями из БД)."""
-        await self.__save_with_refresh(objects=[obj])
+        """Добавляет объект в транзакцию и возвращает его как доменную сущность (с полями из БД)."""
+        await self.__save(objects=[obj], refresh=True)
         return cast(E, obj.to_entity())
 
-    async def __save_without_refresh(self, objects: list[T]) -> None:
-        for obj in objects:
-            self._session.add(obj)
+    async def __save(self, objects: list[T], refresh: bool) -> None:
+        """add + flush; при ``refresh`` перечитывает объекты, чтобы получить auto-generated поля.
 
-        try:
-            await self._session.commit()
-        except IntegrityError as err:
-            await self.__handle_integrity_error(err)
+        Flush нужен, чтобы ошибки ограничений всплыли сразу здесь, а не на commit в UoW.
+        """
+        self._session.add_all(objects)
+        await self._flush()
 
-    async def __save_with_refresh(self, objects: list[T]) -> None:
-        """flush + refresh каждого объекта + commit. Нужен для получения auto-generated полей."""
-        for obj in objects:
-            self._session.add(obj)
-
-        try:
-            await self._session.flush()
-
+        if refresh:
             for obj in objects:
                 await self._session.refresh(obj)
 
-            await self._session.commit()
-        except IntegrityError as err:
-            await self.__handle_integrity_error(err)
-
     async def _delete(self, obj: T) -> None:
-        """Удаляет конкретный объект из БД."""
+        """Помечает объект на удаление в рамках транзакции."""
         await self._session.delete(obj)
-
-        try:
-            await self._session.commit()
-        except IntegrityError as err:
-            await self.__handle_integrity_error(err)
+        await self._flush()
 
     async def _flush(self) -> None:
         """Flush с обработкой IntegrityError."""
         try:
             await self._session.flush()
         except IntegrityError as err:
-            await self.__handle_integrity_error(err)
-
-    async def _commit(self) -> None:
-        """Коммит с обработкой IntegrityError."""
-        try:
-            await self._session.commit()
-        except IntegrityError as err:
-            await self.__handle_integrity_error(err)
-
-    async def _rollback(self) -> None:
-        """Откат транзакции."""
-        await self._session.rollback()
+            raise self.__integrity_error(err) from err
 
     def _copy_columns(
         self,
@@ -175,10 +151,10 @@ class BaseRepository[T: BaseDBModel, E]:
                 continue
             setattr(existing, column.key, getattr(fresh, column.key))
 
-    async def __handle_integrity_error(self, err: IntegrityError) -> None:
-        """Откатывает транзакцию и бросает DatabaseError."""
-        await self._rollback()
-        raise DatabaseError(
+    @staticmethod
+    def __integrity_error(err: IntegrityError) -> DatabaseError:
+        """Оборачивает IntegrityError в DatabaseError инфраструктурного слоя."""
+        return DatabaseError(
             detail="Database query execution failed",
             ru_detail="Ошибка при выполнении запроса к базе данных",
             original_error=err,

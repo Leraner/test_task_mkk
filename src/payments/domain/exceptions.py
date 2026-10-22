@@ -1,4 +1,4 @@
-from src.shared_kernel.exceptions import DomainError, EntityValidationError
+from src.shared_kernel.exceptions import DomainError, EntityNotFoundError, EntityValidationError
 
 
 class PaymentError(DomainError):
@@ -26,3 +26,8 @@ class InvalidIdempotencyKeyError(EntityValidationError, PaymentError):
 class InvalidWebhookUrlError(EntityValidationError, PaymentError):
     detail = "Webhook URL must be an absolute http(s) URL"
     ru_detail = "Webhook URL должен быть абсолютным http(s) адресом"
+
+
+class PaymentNotFoundError(EntityNotFoundError, PaymentError):
+    detail = "Payment not found"
+    ru_detail = "Платёж не найден"

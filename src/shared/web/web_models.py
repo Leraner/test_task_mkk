@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
-from src.shared_kernel.unset import UNSET, Unset
+# from src.shared_kernel.unset import UNSET, Unset
 
 
 class BaseWebModel(BaseModel):
@@ -19,19 +19,19 @@ class BaseWebInputModel(BaseWebModel):
         """Преобразует web-модель в DTO для дальнейшей передачи в use-case."""
         raise NotImplementedError
 
-    def get_or_unset[T](self, field_name: str) -> Unset[T]:
-        """
-        Значение поля, если оно реально пришло в запросе, иначе `UNSET`.
-
-        Для PATCH-подобных эндпоинтов: `model_fields_set` у pydantic и так знает,
-        какие поля были в теле запроса, а не продефолтились — этот метод просто
-        превращает это в `Unset[T]`, готовый к передаче в DTO/`Flow.with_updates`.
-        Сам тип поля на web-модели при этом остаётся обычным `T | None` —
-        никакой `UNSET` наружу, в OpenAPI-схему, не протекает.
-        """
-        if field_name not in self.model_fields_set:
-            return UNSET
-        return getattr(self, field_name)
+    # def get_or_unset[T](self, field_name: str) -> Unset[T]:
+    #     """
+    #     Значение поля, если оно реально пришло в запросе, иначе `UNSET`.
+    #
+    #     Для PATCH-подобных эндпоинтов: `model_fields_set` у pydantic и так знает,
+    #     какие поля были в теле запроса, а не продефолтились — этот метод просто
+    #     превращает это в `Unset[T]`, готовый к передаче в DTO/`Flow.with_updates`.
+    #     Сам тип поля на web-модели при этом остаётся обычным `T | None` —
+    #     никакой `UNSET` наружу, в OpenAPI-схему, не протекает.
+    #     """
+    #     if field_name not in self.model_fields_set:
+    #         return UNSET
+    #     return getattr(self, field_name)
 
 
 class BaseResponseDataModel(BaseWebModel):
