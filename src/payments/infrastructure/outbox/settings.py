@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class OutboxRelaySettings(BaseSettings):
     """Параметры цикла outbox relay."""
 
-    model_config = SettingsConfigDict(env_prefix="OUTBOX_", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="OUTBOX_", extra="ignore", env_ignore_empty=True)
 
     batch_size: int = 100
     poll_interval: float = 1.0

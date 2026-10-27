@@ -2,6 +2,7 @@ from starlette import status
 
 from src.payments.domain.exceptions import PaymentAlreadyProcessedError
 from src.shared.db.exceptions import DatabaseError
+from src.shared.web.exceptions import InvalidApiKeyError
 from src.shared_kernel.exceptions import (
     EntityAlreadyExistError,
     EntityNotFoundError,
@@ -27,4 +28,8 @@ DOMAIN_EXCEPTIONS_TO_STATUS_CODES = {
 
 INFRASTRUCTURE_EXCEPTIONS_TO_STATUS_CODES = {
     DatabaseError: status.HTTP_503_SERVICE_UNAVAILABLE,
+}
+
+WEB_EXCEPTIONS_TO_STATUS_CODES = {
+    InvalidApiKeyError: status.HTTP_401_UNAUTHORIZED,
 }

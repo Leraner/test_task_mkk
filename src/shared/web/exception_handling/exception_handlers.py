@@ -12,6 +12,7 @@ from src.shared.exceptions import InfrastructureError
 from src.shared.web.exception_handling.exception_map import (
     DOMAIN_EXCEPTIONS_TO_STATUS_CODES,
     INFRASTRUCTURE_EXCEPTIONS_TO_STATUS_CODES,
+    WEB_EXCEPTIONS_TO_STATUS_CODES,
 )
 from src.shared_kernel.exceptions import DomainError
 
@@ -81,7 +82,9 @@ def setup_exception_handlers(app: FastAPI) -> None:
     доменные и инфраструктурные из `exception_map.py`, ошибку валидации
     запроса, а также fallback-handler на любое необработанное исключение.
     """
-    for exc_class, status_code in DOMAIN_EXCEPTIONS_TO_STATUS_CODES.items():
+    for exc_class, status_code in (
+        DOMAIN_EXCEPTIONS_TO_STATUS_CODES | WEB_EXCEPTIONS_TO_STATUS_CODES
+    ).items():
         app.exception_handler(exc_class)(_make_domain_handler(status_code))
 
     for exc_class, status_code in INFRASTRUCTURE_EXCEPTIONS_TO_STATUS_CODES.items():

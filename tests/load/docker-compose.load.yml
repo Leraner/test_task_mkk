@@ -2,7 +2,15 @@
 #   docker compose -f docker-compose.yml -f tests/load/docker-compose.load.yml up -d
 services:
   webhook-sink:
-    image: python:3.14-alpine
+    image: python:3.14-alpine@sha256:bc62fbcb684904b1bb81a6240041bb60e9c1ee19ddeaf17a6b4297e1cc9c95d2
     command: ["python", "-u", "/sink/webhook_sink.py"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
     volumes:
       - ./tests/load/webhook_sink.py:/sink/webhook_sink.py:ro
+
+  consumer:
+    environment:
+      # Приёмник живёт во внутренней сети - для теста разрешаем приватные адреса.
+      WEBHOOK_ALLOW_PRIVATE_NETWORKS: "true"

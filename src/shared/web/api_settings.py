@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Any
 
-from pydantic import Field, field_validator
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -31,10 +31,8 @@ class APISettings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
 
-    jwt_secret_key: str = "some_key"
-    jwt_access_token_expire_minutes: int = 30
-    jwt_refresh_token_expire_days: int = 7
-    superadmin_email: str = ""
+    # Статический ключ для заголовка X-API-Key (переменная API_KEY), без значения по умолчанию.
+    api_key: SecretStr
 
     # Custom settings
     disable_docs: bool = False

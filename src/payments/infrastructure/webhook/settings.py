@@ -4,11 +4,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class WebhookSettings(BaseSettings):
-    """Параметры отправки webhook."""
+    """Параметры отправки webhook; приватные адреса разрешать только в тестовом окружении."""
 
-    model_config = SettingsConfigDict(env_prefix="WEBHOOK_", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="WEBHOOK_", extra="ignore", env_ignore_empty=True)
 
     timeout: float = 5.0
+    allow_private_networks: bool = False
 
 
 @lru_cache

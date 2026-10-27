@@ -1,11 +1,49 @@
+# Контейнеры приложения: файловая система только для чтения, без capabilities и без
+# повышения привилегий.
+x-app: &app
+  build: .
+  read_only: true
+  tmpfs: [/tmp]
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+
+# Приложение ходит в БД под ролью с правами только на DML; владелец БД - только у миграций.
+x-db-app-env: &db-app-env
+  POSTGRES_HOST: database
+  POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+  POSTGRES_USER: ${POSTGRES_APP_USER:?set POSTGRES_APP_USER in .env}
+  POSTGRES_PASSWORD: ${POSTGRES_APP_PASSWORD:?set POSTGRES_APP_PASSWORD in .env}
+
+x-rabbitmq-env: &rabbitmq-env
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:?set RABBITMQ_DEFAULT_USER in .env}
+  RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?set RABBITMQ_DEFAULT_PASS in .env}
+
+# Пустое значение - настройка по умолчанию из кода (env_ignore_empty).
+x-queues-env: &queues-env
+  PAYMENTS_EXCHANGE: ${PAYMENTS_EXCHANGE:-}
+  PAYMENTS_NEW_QUEUE: ${PAYMENTS_NEW_QUEUE:-}
+  PAYMENTS_NEW_DLQ: ${PAYMENTS_NEW_DLQ:-}
+  PAYMENTS_NEW_RETRY_QUEUE_PREFIX: ${PAYMENTS_NEW_RETRY_QUEUE_PREFIX:-}
+  PAYMENTS_MAX_ATTEMPTS: ${PAYMENTS_MAX_ATTEMPTS:-}
+  PAYMENTS_RETRY_BASE_DELAY_MS: ${PAYMENTS_RETRY_BASE_DELAY_MS:-}
+
 services:
   database:
-    image: postgres:17-alpine
-    env_file: .env
+    image: postgres:17-alpine@sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_APP_USER: ${POSTGRES_APP_USER:?set POSTGRES_APP_USER in .env}
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:?set POSTGRES_APP_PASSWORD in .env}
+    # Порты только на localhost - для отладки с хоста; сервисы ходят по внутренней сети.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-app-user.sh:/docker-entrypoint-initdb.d/init-app-user.sh:ro
+    security_opt: [no-new-privileges:true]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
@@ -13,15 +51,18 @@ services:
       retries: 10
 
   rabbitmq:
-    image: rabbitmq:4-management-alpine
+    image: rabbitmq:4-management-alpine@sha256:0452ee3fd3b9a74160b251e693338616b464f22df4d4ba43304c101bebdca292
     # Данные в томе лежат под именем узла: без фиксированного hostname они теряются.
     hostname: rabbitmq
-    env_file: .env
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:?set RABBITMQ_DEFAULT_USER in .env}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?set RABBITMQ_DEFAULT_PASS in .env}
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    security_opt: [no-new-privileges:true]
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -29,29 +70,43 @@ services:
       retries: 10
 
   migrations:
-    build: .
-    env_file: .env
+    <<: *app
     command: ["alembic", "upgrade", "head"]
+    environment:
+      POSTGRES_HOST: database
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    mem_limit: 256m
+    cpus: 0.5
     depends_on:
       database:
         condition: service_healthy
 
   api:
-    build: .
-    env_file: .env
+    <<: *app
+    environment:
+      <<: *db-app-env
+      API_KEY: ${API_KEY:?set API_KEY in .env}
     ports:
       - "8000:8000"
+    mem_limit: 512m
+    cpus: 1.0
     depends_on:
       migrations:
         condition: service_completed_successfully
-      rabbitmq:
-        condition: service_healthy
     restart: unless-stopped
 
   outbox-relay:
-    build: .
-    env_file: .env
+    <<: *app
     command: ["python", "-m", "src.payments.infrastructure.outbox.main"]
+    environment:
+      <<: [*db-app-env, *rabbitmq-env, *queues-env]
+      OUTBOX_BATCH_SIZE: ${OUTBOX_BATCH_SIZE:-}
+      OUTBOX_POLL_INTERVAL: ${OUTBOX_POLL_INTERVAL:-}
+      OUTBOX_MAX_BACKOFF: ${OUTBOX_MAX_BACKOFF:-}
+    mem_limit: 256m
+    cpus: 0.5
     depends_on:
       migrations:
         condition: service_completed_successfully
@@ -60,9 +115,17 @@ services:
     restart: unless-stopped
 
   consumer:
-    build: .
-    env_file: .env
+    <<: *app
     command: ["python", "-m", "src.payments.infrastructure.consumer.main"]
+    environment:
+      <<: [*db-app-env, *rabbitmq-env, *queues-env]
+      WEBHOOK_TIMEOUT: ${WEBHOOK_TIMEOUT:-}
+      WEBHOOK_ALLOW_PRIVATE_NETWORKS: ${WEBHOOK_ALLOW_PRIVATE_NETWORKS:-}
+      CONSUMER_PREFETCH_COUNT: ${CONSUMER_PREFETCH_COUNT:-}
+      CONSUMER_TRANSIENT_RETRY_FOR: ${CONSUMER_TRANSIENT_RETRY_FOR:-}
+      CONSUMER_TRANSIENT_RETRY_MAX_DELAY: ${CONSUMER_TRANSIENT_RETRY_MAX_DELAY:-}
+    mem_limit: 1g
+    cpus: 1.0
     depends_on:
       migrations:
         condition: service_completed_successfully

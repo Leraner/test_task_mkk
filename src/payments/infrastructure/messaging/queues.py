@@ -39,7 +39,7 @@ def _retry_queue(retry: int) -> RabbitQueue:
     )
 
 
-# По умолчанию: retry.1 - 2 с, retry.2 - 4 с, потом DLQ.
+# По умолчанию: retry.1 - 2 с, retry.2 - 4 с, retry.3 - 8 с, потом DLQ.
 PAYMENTS_NEW_RETRY_QUEUES = tuple(
     _retry_queue(retry) for retry in range(1, settings.payments_max_attempts)
 )

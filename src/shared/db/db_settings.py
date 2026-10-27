@@ -1,4 +1,5 @@
 from functools import lru_cache
+from urllib.parse import quote
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -6,10 +7,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class DBSettings(BaseSettings):
     """Подключение к PostgreSQL."""
 
-    model_config = SettingsConfigDict(env_prefix="POSTGRES_", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="POSTGRES_", extra="ignore", env_ignore_empty=True)
 
-    user: str = "postgres"
-    password: str = "postgres"
+    user: str
+    password: str
     db: str = "postgres"
     port: int = 5432
     host: str = "database"
@@ -21,11 +22,8 @@ class DBSettings(BaseSettings):
     @property
     def connection_url(self) -> str:
         """Строка подключения вида dialect+driver://user:password@host:port/db."""
-        return (
-            f"{self.dialect}+{self.driver}:"
-            f"//{self.user}:{self.password}@"
-            f"{self.host}:{self.port}/{self.db}"
-        )
+        user, password = quote(self.user, safe=""), quote(self.password, safe="")
+        return f"{self.dialect}+{self.driver}://{user}:{password}@{self.host}:{self.port}/{self.db}"
 
 
 @lru_cache

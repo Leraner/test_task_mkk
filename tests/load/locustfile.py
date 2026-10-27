@@ -1,11 +1,25 @@
 import os
 import random
 import uuid
+from pathlib import Path
+from typing import ClassVar
 
 from locust import FastHttpUser, between, task
 
 # /flaky отвечает 500 на 10% запросов, чтобы под нагрузкой работали retry-очереди.
 WEBHOOK_URL = os.getenv("LOAD_WEBHOOK_URL", "http://webhook-sink:8080/flaky")
+
+
+def api_key() -> str:
+    """API_KEY из окружения, иначе из .env в корне проекта."""
+    if key := os.getenv("API_KEY"):
+        return key
+    env_file = Path(__file__).resolve().parents[2] / ".env"
+    for line in env_file.read_text().splitlines():
+        name, _, value = line.partition("=")
+        if name.strip() == "API_KEY":
+            return value.strip()
+    raise RuntimeError("API_KEY не найден ни в окружении, ни в .env")
 
 
 def payment_body() -> dict:
@@ -20,6 +34,7 @@ def payment_body() -> dict:
 
 class PaymentsUser(FastHttpUser):
     wait_time = between(0.1, 0.5)
+    default_headers: ClassVar[dict[str, str]] = {"X-API-Key": api_key()}
 
     def on_start(self) -> None:
         self.created: list[tuple[str, dict, str]] = []
