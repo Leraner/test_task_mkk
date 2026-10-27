@@ -12,8 +12,8 @@ class DatabaseError(InfrastructureError):
     def is_unique_violation(self, constraint_name: str) -> bool:
         """Вызвана ли ошибка нарушением уникального ограничения `constraint_name`.
 
-        `original_error.orig` — ошибка драйвера в обёртке SQLAlchemy (с `sqlstate`),
-        её `__cause__` — исходная ошибка asyncpg (с `constraint_name`).
+        `original_error.orig` - ошибка драйвера в обёртке SQLAlchemy (с `sqlstate`),
+        её `__cause__` - исходная ошибка asyncpg (с `constraint_name`).
         """
         orig = getattr(self.original_error, "orig", None)
         return (

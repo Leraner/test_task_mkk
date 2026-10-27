@@ -9,6 +9,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.payments.domain.entities import Payment
+from src.payments.domain.interfaces.outbox import OutboxMessage
 from src.payments.domain.value_objects import Currency, PaymentStatus
 from src.shared.db.base.models import BaseDBModel, Timestamp
 
@@ -65,15 +66,11 @@ class PaymentDBModel(Timestamp, BaseDBModel):
 
 
 class OutboxEventDBModel(BaseDBModel):
-    """Transactional outbox: событие пишется в одной транзакции с платежом.
-
-    Паблишер выбирает строки с `published_at IS NULL` в порядке `id` (UUIDv7 — по времени
-    создания), отправляет `payload` в `topic` и проставляет `published_at`.
-    """
+    """Transactional outbox: событие пишется в одной транзакции с платежом."""
 
     __tablename__ = "outbox"
 
-    topic: Mapped[str] = mapped_column(String(255))
+    routing_key: Mapped[str] = mapped_column(String(255))
     payload: Mapped[dict[str, Any]] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -88,3 +85,6 @@ class OutboxEventDBModel(BaseDBModel):
             postgresql_where=published_at.is_(None),
         ),
     )
+
+    def to_entity(self) -> OutboxMessage:
+        return OutboxMessage(id=self.id, routing_key=self.routing_key, payload=self.payload)

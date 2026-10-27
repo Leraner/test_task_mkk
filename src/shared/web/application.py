@@ -23,7 +23,7 @@ class Application:
     Собирает инстанс `FastAPI` из `APISettings`: подключает DI-контейнер
     (dishka), middleware, общий роутер со всеми bounded contexts и
     exception-handler'ы. Также умеет запускать приложение через uvicorn
-    (`run`) — используется как единая точка входа для локального запуска.
+    (`run`) - используется как единая точка входа для локального запуска.
     """
 
     def __init__(self, settings: APISettings) -> None:

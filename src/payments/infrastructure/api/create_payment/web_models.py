@@ -33,7 +33,7 @@ class CreatePaymentInputModel(BaseWebInputModel):
     def _idempotency_fingerprint(self) -> str:
         """SHA-256 канонизированного тела запроса (idempotency fingerprint).
 
-        Ключи сортируются, сумма приводится к 2 знакам — иначе равные запросы
+        Ключи сортируются, сумма приводится к 2 знакам - иначе равные запросы
         (`{"a":1,"b":2}` / `{"b":2,"a":1}`, `100` / `100.00`) дали бы разный хэш.
         """
         payload = json.dumps(

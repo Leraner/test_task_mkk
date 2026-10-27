@@ -1,18 +1,10 @@
-"""Настройки подключения к PostgreSQL, читаемые из переменных окружения с префиксом `POSTGRES_`."""
-
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class DBSettings(BaseSettings):
-    """
-    Параметры подключения к PostgreSQL.
-
-    Каждый атрибут `xxx` соответствует переменной окружения `POSTGRES_XXX`
-    (например, `host` → `POSTGRES_HOST`). Значения по умолчанию рассчитаны
-    на локальный docker-compose стек.
-    """
+    """Подключение к PostgreSQL."""
 
     model_config = SettingsConfigDict(env_prefix="POSTGRES_", extra="ignore")
 
@@ -38,5 +30,5 @@ class DBSettings(BaseSettings):
 
 @lru_cache
 def get_db_settings() -> DBSettings:
-    """Кэшированный экземпляр настроек. Для сброса — get_db_settings.cache_clear()."""
+    """Кэшированный экземпляр настроек. Для сброса - get_db_settings.cache_clear()."""
     return DBSettings()

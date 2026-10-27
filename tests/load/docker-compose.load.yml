@@ -1,0 +1,8 @@
+# Добавляет в стек приёмник webhook для нагрузочного теста:
+#   docker compose -f docker-compose.yml -f tests/load/docker-compose.load.yml up -d
+services:
+  webhook-sink:
+    image: python:3.14-alpine
+    command: ["python", "-u", "/sink/webhook_sink.py"]
+    volumes:
+      - ./tests/load/webhook_sink.py:/sink/webhook_sink.py:ro

@@ -6,8 +6,8 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 
-# Импорт моделей регистрирует их таблицы в BaseDBModel.metadata — без него autogenerate
-# не увидит таблиц. Новый bounded context — добавить сюда импорт его моделей.
+# Импорт моделей регистрирует их таблицы в BaseDBModel.metadata - без него autogenerate
+# не увидит таблиц. Новый bounded context - добавить сюда импорт его моделей.
 from src.payments.infrastructure.db.models import OutboxEventDBModel, PaymentDBModel  # noqa: F401
 from src.shared.db.base.models import BaseDBModel
 from src.shared.db.db_settings import get_db_settings
@@ -49,7 +49,7 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_migrations_online() -> None:
-    """Применяет миграции через async-движок (asyncpg); NullPool — соединение одноразовое."""
+    """Применяет миграции через async-движок (asyncpg); NullPool - соединение одноразовое."""
     engine = create_async_engine(DATABASE_URL, poolclass=pool.NullPool)
     async with engine.connect() as connection:
         await connection.run_sync(do_run_migrations)

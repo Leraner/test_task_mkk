@@ -5,8 +5,9 @@ from src.payments.infrastructure.api.create_payment.route import (
 )
 from src.payments.infrastructure.api.get_payment.route import router as get_payment_route
 
-router = APIRouter(prefix="/payments")
+router = APIRouter()
 
-
-router.include_router(create_payment_route)
-router.include_router(get_payment_route)
+# Префикс - в include_router: create-роут объявлен с пустым путём, чтобы был
+# POST /api/v1/payments без слеша, а FastAPI запрещает пустые и prefix, и path роутера.
+router.include_router(create_payment_route, prefix="/payments")
+router.include_router(get_payment_route, prefix="/payments")

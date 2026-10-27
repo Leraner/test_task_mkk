@@ -17,7 +17,7 @@ from src.shared.web.web_models import BaseWebOutputModel
 router = APIRouter()
 
 
-@router.post("/", status_code=status.HTTP_202_ACCEPTED)
+@router.post("", status_code=status.HTTP_202_ACCEPTED)
 @inject
 async def create_payment(
     body: CreatePaymentInputModel,

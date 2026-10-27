@@ -1,6 +1,6 @@
 class DomainError(Exception):
-    detail = 'Unknown error'
-    ru_detail = 'Неизвестная ошибка'
+    detail = "Unknown error"
+    ru_detail = "Неизвестная ошибка"
     extra: dict | None = None
 
     def __init__(
@@ -16,20 +16,20 @@ class DomainError(Exception):
 
 
 class EntityNotFoundError(DomainError):
-    detail = 'Entity not found'
-    ru_detail = 'Запись не найдена'
+    detail = "Entity not found"
+    ru_detail = "Запись не найдена"
 
 
 class EntityAlreadyExistError(DomainError):
-    detail = 'Entity already exist'
-    ru_detail = 'Запись уже существует'
+    detail = "Entity already exist"
+    ru_detail = "Запись уже существует"
 
 
 class EntityValidationError(DomainError):
-    detail = 'Entity validation error'
-    ru_detail = 'Ошибка валидации записи'
+    detail = "Entity validation error"
+    ru_detail = "Ошибка валидации записи"
 
 
 class PermissionDeniedError(DomainError):
-    detail = 'Permission denied'
-    ru_detail = 'Недостаточно прав'
+    detail = "Permission denied"
+    ru_detail = "Недостаточно прав"

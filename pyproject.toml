@@ -4,17 +4,22 @@ version = "0.1.0"
 requires-python = ">=3.14"
 dependencies = [
     "aio-pika>=10.1.1",
+    "alembic>=1.20.1",
     "asyncpg>=0.32.0",
     "dishka>=1.10.1",
+    "dishka-faststream>=0.7.0",
     "fastapi>=0.160.0",
     "faststream[rabbit]>=0.7.7",
+    "httpx>=0.28.1",
     "pydantic-settings>=2.16.1",
     "sqlalchemy[asyncio]>=2.1.6",
+    "tenacity>=9.2.1",
     "uvicorn>=0.54.0",
 ]
 
 [dependency-groups]
 dev = [
+    "locust>=2.47.0",
     "ruff>=0.17.1",
 ]
 
@@ -24,7 +29,7 @@ target-version = "py314"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
-# Кириллица в строках/комментариях — не опечатка
+# Кириллица в строках/комментариях - не опечатка
 ignore = ["RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.format]

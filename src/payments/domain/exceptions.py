@@ -43,6 +43,16 @@ class PaymentAlreadyExistsError(EntityAlreadyExistError, PaymentError):
     ru_detail = "Платёж с таким ключом идемпотентности уже существует"
 
 
+class WebhookDeliveryError(PaymentError):
+    detail = "Webhook was not delivered, delivery can be retried"
+    ru_detail = "Webhook не доставлен, отправку можно повторить"
+
+
+class WebhookRejectedError(PaymentError):
+    detail = "Webhook was rejected by the receiver, retry will not help"
+    ru_detail = "Получатель отклонил webhook, повтор не поможет"
+
+
 class IdempotencyKeyReusedError(EntityValidationError, PaymentError):
     detail = "Idempotency key was already used with different request parameters"
     ru_detail = "Ключ идемпотентности уже использован с другими параметрами запроса"

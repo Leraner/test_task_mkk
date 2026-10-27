@@ -13,11 +13,11 @@ from src.shared.db.exceptions import DatabaseError
 class BaseRepository[T: BaseDBModel, E]:
     """Базовый репозиторий с общими CRUD-операциями поверх SQLAlchemy.
 
-    ``T`` — ORM-модель, ``E`` — доменная сущность, которую возвращает ``to_entity()`` для этой модели.
+    ``T`` - ORM-модель, ``E`` - доменная сущность, которую возвращает ``to_entity()`` для этой модели.
     Наследники задают ``model`` и добавляют публичные методы.
 
     Репозиторий не управляет транзакцией: он только добавляет изменения в сессию
-    и делает flush. Commit/rollback — ответственность ``IUnitOfWork``, поэтому
+    и делает flush. Commit/rollback - ответственность ``IUnitOfWork``, поэтому
     несколько репозиториев на одной сессии пишут в одну транзакцию.
     При IntegrityError бросает DatabaseError; откат делает тот, кто владеет транзакцией.
     """
@@ -84,7 +84,7 @@ class BaseRepository[T: BaseDBModel, E]:
         self,
         query: QueryType,
     ) -> Any:
-        """Выполняет запрос. При IntegrityError — DatabaseError."""
+        """Выполняет запрос. При IntegrityError - DatabaseError."""
         try:
             return await self._session.execute(query)
         except IntegrityError as err:
@@ -143,7 +143,7 @@ class BaseRepository[T: BaseDBModel, E]:
         Нужно для update(): нельзя просто заменить объект в сессии на ``fresh``
         (SQLAlchemy не свяжет его с существующей строкой), поэтому переносим
         значения полей на уже отслеживаемый инстанс. ``fresh`` обычно строится
-        через ``Model.from_entity()`` — так список полей не дублируется отдельно
+        через ``Model.from_entity()`` - так список полей не дублируется отдельно
         в update(), а берётся из единственного источника истины.
         """
         for column in self.model.__table__.columns:

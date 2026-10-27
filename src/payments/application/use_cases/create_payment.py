@@ -30,17 +30,7 @@ class CreatePaymentOutputDTO:
 
 
 class CreatePaymentUseCase:
-    """
-    Создание платежа. Всё выполняется внутри `async with self._uow:`.
-
-    1. Сразу вставить `Payment` в статусе pending — дубли отсекает уникальный индекс
-       по `idempotency_key`, без предварительного SELECT и без гонки.
-    2. Если ключ занят (`PaymentAlreadyExistsError`) — откатить транзакцию и вернуть
-       существующий платёж; если `idempotency_fingerprint` не совпал —
-       `IdempotencyKeyReusedError` (422).
-    3. Иначе в одной транзакции с платежом записать событие `payments.new` в outbox
-       и зафиксировать всё одним `uow.commit()`.
-    """
+    """Создание платежа: insert-first по idempotency_key, событие в outbox - в той же транзакции."""
 
     def __init__(self, uow: IPaymentsUnitOfWork) -> None:
         self._uow = uow

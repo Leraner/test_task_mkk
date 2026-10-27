@@ -30,7 +30,7 @@ class GetPaymentUseCase:
     """
     Получение платежа по id через репозиторий: только чтение, UoW не нужен.
 
-    Если платежа нет — `PaymentNotFoundError` (→ 404 через exception_map).
+    Если платежа нет - `PaymentNotFoundError` (→ 404 через exception_map).
     """
 
     def __init__(self, payments: IPaymentsRepository) -> None:

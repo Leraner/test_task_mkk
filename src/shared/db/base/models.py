@@ -6,7 +6,7 @@ from uuid import UUID, uuid7
 from sqlalchemy import DateTime, MetaData, Uuid, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-# Предсказуемые имена ограничений и индексов вместо сгенерированных БД —
+# Предсказуемые имена ограничений и индексов вместо сгенерированных БД -
 # чтобы миграции (Alembic) могли ссылаться на них по имени.
 NAMING_CONVENTION = {
     "ix": "ix_%(column_0_label)s",
@@ -20,7 +20,7 @@ NAMING_CONVENTION = {
 class BaseDBModel(DeclarativeBase):
     """Базовый класс для всех SQLAlchemy-моделей.
 
-    `id` — UUIDv7: глобально уникален и упорядочен по времени создания,
+    `id` - UUIDv7: глобально уникален и упорядочен по времени создания,
     поэтому подходит и для сортировки в порядке вставки (например, outbox).
     """
 

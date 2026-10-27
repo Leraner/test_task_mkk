@@ -14,6 +14,8 @@ services:
 
   rabbitmq:
     image: rabbitmq:4-management-alpine
+    # Данные в томе лежат под именем узла: без фиксированного hostname они теряются.
+    hostname: rabbitmq
     env_file: .env
     ports:
       - "5672:5672"
@@ -39,6 +41,28 @@ services:
     env_file: .env
     ports:
       - "8000:8000"
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  outbox-relay:
+    build: .
+    env_file: .env
+    command: ["python", "-m", "src.payments.infrastructure.outbox.main"]
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  consumer:
+    build: .
+    env_file: .env
+    command: ["python", "-m", "src.payments.infrastructure.consumer.main"]
     depends_on:
       migrations:
         condition: service_completed_successfully
